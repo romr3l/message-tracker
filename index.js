@@ -1,5 +1,6 @@
 import { Client, GatewayIntentBits } from 'discord.js';
-import { Low, JSONFile } from 'lowdb';
+import { Low } from 'lowdb';
+import { JSONFile } from 'lowdb/node';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import config from './config.js';
