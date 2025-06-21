@@ -8,7 +8,6 @@ import config from './config.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -32,65 +31,64 @@ function getWeekKey(date) {
     return `${year}-W${week}`;
 }
 
-async function formatLeaderboard(data, client) {
-    const sorted = Object.entries(data).sort((a, b) => b[1] - a[1]).slice(0, 10);
-    const result = await Promise.all(sorted.map(async ([userId, count], index) => {
-        try {
-            const user = await client.users.fetch(userId);
-            return `**${index + 1}.** ${user.username} - ${count}`;
-        } catch {
-            return `**${index + 1}.** Unknown (${userId}) - ${count}`;
-        }
-    }));
-    return result.join('\n');
-}
-
-client.on('messageCreate', async message => {
-    if (message.author.bot) return;
-    const userId = message.author.id;
+client.on('interactionCreate', async interaction => {
+    if (!interaction.isChatInputCommand()) return;
+    const { commandName, options, user } = interaction;
 
     await db.read();
     const weekKey = getWeekKey(new Date());
 
-    if (message.channel.id === config.trackedChannelId) {
-        db.data.allTime[userId] = (db.data.allTime[userId] || 0) + 1;
-        db.data.weekly[userId] = (db.data.weekly[userId] || 0) + 1;
+    if (commandName === 'leaderboard') {
+        const type = options.getSubcommand();
+        const data = type === 'all' ? db.data.allTime : db.data.history[weekKey];
+        if (!data) {
+            return interaction.reply({ content: '❌ No data available for that leaderboard.', ephemeral: true });
+        }
 
-        if (!db.data.history[weekKey]) db.data.history[weekKey] = {};
-        db.data.history[weekKey][userId] = (db.data.history[weekKey][userId] || 0) + 1;
+        const sorted = Object.entries(data).sort(([, a], [, b]) => b - a).slice(0, 10);
+        const leaderboard = await Promise.all(sorted.map(async ([userId, count], i) => {
+            try {
+                const u = await client.users.fetch(userId);
+                return `**${i + 1}.** ${u.username} — ${count}`;
+            } catch {
+                return `**${i + 1}.** Unknown (${userId}) — ${count}`;
+            }
+        }));
 
-        await db.write();
+        await interaction.reply({
+            embeds: [{
+                title: type === 'all' ? '🏆 All-Time Leaderboard' : `📅 Weekly Leaderboard (${weekKey})`,
+                description: leaderboard.join('\n') || 'No messages yet.',
+                color: 0x00BFFF
+            }]
+        });
     }
 
-    if (message.content.startsWith('!leaderboard')) {
-        const args = message.content.split(' ');
-        if (args[1] === 'week') {
-            const key = args[2] || weekKey;
-            const data = db.data.history[key];
-            if (!data) return message.reply(`❌ No data for ${key}`);
-            const lb = await formatLeaderboard(data, client);
-            message.channel.send(`📅 **Week: ${key}**\n\n${lb}`);
-        }
-        if (args[1] === 'all') {
-            const lb = await formatLeaderboard(db.data.allTime, client);
-            message.channel.send(`🏆 **All-Time Leaderboard**\n\n${lb}`);
-        }
+    if (commandName === 'stats') {
+        const target = options.getUser('user') || user;
+        const all = db.data.allTime[target.id] || 0;
+        const week = db.data.weekly[target.id] || 0;
+
+        await interaction.reply({
+            embeds: [{
+                title: `📊 Stats for ${target.username}`,
+                fields: [
+                    { name: 'Weekly Messages', value: `${week}`, inline: true },
+                    { name: 'All-Time Messages', value: `${all}`, inline: true }
+                ],
+                color: 0x5865F2
+            }]
+        });
     }
 
-    if (message.content.startsWith('!stats')) {
-        const mention = message.mentions.users.first() || message.author;
-        const all = db.data.allTime[mention.id] || 0;
-        const week = db.data.weekly[mention.id] || 0;
-        message.channel.send(`📊 Stats for **${mention.username}**\nWeekly: ${week} msgs\nAll-Time: ${all} msgs`);
-    }
-
-    if (message.content === '!resetweek') {
-        if (!config.adminIds.includes(userId)) {
-            return message.reply("❌ You don't have permission.");
+    if (commandName === 'resetweek') {
+        if (!config.adminIds.includes(user.id)) {
+            return interaction.reply({ content: '❌ You do not have permission to reset the week.', ephemeral: true });
         }
+
         db.data.weekly = {};
         await db.write();
-        message.channel.send('✅ Weekly stats reset.');
+        await interaction.reply('✅ Weekly message stats have been reset.');
     }
 });
 
@@ -99,4 +97,3 @@ client.once('ready', () => {
 });
 
 client.login(process.env.BOT_TOKEN);
-
