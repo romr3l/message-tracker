@@ -1,4 +1,4 @@
 module.exports = {
-    trackedChannelId: 'YOUR_CHANNEL_ID_HERE',
-    adminIds: ['YOUR_DISCORD_USER_ID_HERE'],
+    trackedChannelId: '1189957823367479356',
+    adminIds: ['1084921149374345317'],
 };
