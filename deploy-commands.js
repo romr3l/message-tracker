@@ -1,34 +1,26 @@
-import { REST, Routes } from '@discordjs/rest';
+import { REST, Routes } from 'discord.js';
 import { SlashCommandBuilder } from '@discordjs/builders';
 
 const commands = [
   new SlashCommandBuilder()
     .setName('leaderboard')
-    .setDescription('Show leaderboard')
-    .addSubcommand(sub =>
-      sub.setName('week').setDescription('Show this week\'s leaderboard')
-    )
-    .addSubcommand(sub =>
-      sub.setName('all').setDescription('Show all-time leaderboard')
-    ),
+    .setDescription('Show message leaderboards')
+    .addSubcommand(s => s.setName('week').setDescription('Current week'))
+    .addSubcommand(s => s.setName('all').setDescription('All-time')),
   new SlashCommandBuilder()
     .setName('stats')
-    .setDescription('Show your message stats')
-    .addUserOption(opt =>
-      opt.setName('user')
-        .setDescription('User to show stats for')
-        .setRequired(false)
-    ),
+    .setDescription('Show user stats')
+    .addUserOption(o => o.setName('user').setDescription('User').setRequired(false)),
   new SlashCommandBuilder()
     .setName('resetweek')
-    .setDescription('Reset the current weekly message stats'),
-].map(cmd => cmd.toJSON());
+    .setDescription('Reset weekly stats (admin only)')
+].map(c => c.toJSON());
+
+//  <<< PUT YOUR IDs HERE >>>
+const CLIENT_ID = '1365422315642556457';
+const GUILD_ID  = '1365422315642556457';
 
 const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
-
-// replace with your app and guild ID:
-const CLIENT_ID = 'YOUR_BOT_CLIENT_ID';
-const GUILD_ID = 'YOUR_GUILD_ID';
 
 try {
   console.log('Deploying slash commands...');
@@ -36,7 +28,7 @@ try {
     Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
     { body: commands }
   );
-  console.log('✅ Slash commands deployed.');
+  console.log('✅ Commands deployed.');
 } catch (err) {
   console.error(err);
 }
