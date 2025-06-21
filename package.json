@@ -2,15 +2,13 @@
   "name": "message-tracker-bot",
   "version": "1.0.0",
   "main": "index.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
-    "discord.js": "^14.20.0",
-    "lowdb": "^7.0.1"
+    "discord.js": "^14.0.0",
+    "lowdb": "^5.0.0"
   }
 }
+
