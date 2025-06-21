@@ -92,4 +92,5 @@ client.once('ready', () => {
     console.log(`✅ Logged in as ${client.user.tag}`);
 });
 
-client.login('YOUR_BOT_TOKEN'); // ← Replace this
+client.login(process.env.BOT_TOKEN);
+
