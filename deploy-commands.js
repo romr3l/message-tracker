@@ -1,34 +1,46 @@
-import { REST, Routes } from 'discord.js';
+// deploy-commands.js
+import { REST }               from '@discordjs/rest';
+import { Routes }             from 'discord-api-types/v10';
 import { SlashCommandBuilder } from '@discordjs/builders';
 
 const commands = [
+  /* /leaderboard week|all [top] */
   new SlashCommandBuilder()
     .setName('leaderboard')
     .setDescription('Show message leaderboards')
-    .addSubcommand(s => s.setName('week').setDescription('Current week'))
-    .addSubcommand(s => s.setName('all').setDescription('All-time')),
+    .addSubcommand(sc =>
+      sc.setName('week')
+        .setDescription('Current week')
+        .addIntegerOption(o =>
+          o.setName('top')
+           .setDescription('How many users to show (1-100)')
+           .setMinValue(1)
+           .setMaxValue(100)
+           .setRequired(false)))
+    .addSubcommand(sc =>
+      sc.setName('all')
+        .setDescription('All-time')
+        .addIntegerOption(o =>
+          o.setName('top')
+           .setDescription('How many users to show (1-100)')
+           .setMinValue(1)
+           .setMaxValue(100)
+           .setRequired(false))),
+
+  /* /stats [user] */
   new SlashCommandBuilder()
     .setName('stats')
-    .setDescription('Show user stats')
-    .addUserOption(o => o.setName('user').setDescription('User').setRequired(false)),
+    .setDescription('Show message stats for a user')
+    .addUserOption(o =>
+      o.setName('user')
+       .setDescription('Leave empty for yourself')
+       .setRequired(false)),
+
+  /* /resetweek (admin only) */
   new SlashCommandBuilder()
     .setName('resetweek')
-    .setDescription('Reset weekly stats (admin only)')
+    .setDescription('Reset weekly stats')
+    .setDefaultMemberPermissions(0)          // block everyone at Discord level
+    .setDMPermission(false)
 ].map(c => c.toJSON());
 
-//  <<< PUT YOUR IDs HERE >>>
-const CLIENT_ID = '1365422315642556457';
-const GUILD_ID  = '1365422315642556457';
-
-const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
-
-try {
-  console.log('Deploying slash commands...');
-  await rest.put(
-    Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID),
-    { body: commands }
-  );
-  console.log('✅ Commands deployed.');
-} catch (err) {
-  console.error(err);
-}
