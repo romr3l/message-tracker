@@ -18,10 +18,21 @@ const client = new Client({
 });
 
 // ────── LowDB setup ──────
-const db = new Low(new JSONFile(path.join(__dirname, 'db.json')));
-await db.read();
-db.data ||= { allTime: {}, weekly: {}, history: {} };
-await db.write();
+const file     = path.join(__dirname, 'db.json');
+const adapter  = new JSONFile(file);
+const db       = new Low(adapter, {
+  /** 👇 new — satisfies lowdb’s ‘defaultData’ requirement */
+  defaultData: { allTime: {}, weekly: {}, history: {} }
+});
+
+await db.read();              // creates file if it doesn’t exist
+
+/* optional – only write the file the very first time */
+if (!db.data.allTime) {
+  db.data = { allTime: {}, weekly: {}, history: {} };
+  await db.write();
+}
+
 
 // ────── Helpers ──────
 function getWeekKey(date = new Date()) {
