@@ -21,36 +21,30 @@ const client = new Client({
 const file     = path.join(__dirname, 'db.json');
 const adapter  = new JSONFile(file);
 const db       = new Low(adapter, {
-  /** 👇 new — satisfies lowdb’s ‘defaultData’ requirement */
-  defaultData: { allTime: {}, weekly: {}, history: {} }
+  defaultData: { allTime: {}, weekly: {}, history: {}, weekIndex: 1 }
 });
 
-await db.read();              // creates file if it doesn’t exist
+await db.read();
 
-/* optional – only write the file the very first time */
 if (!db.data.allTime) {
-  db.data = { allTime: {}, weekly: {}, history: {} };
+  db.data = { allTime: {}, weekly: {}, history: {}, weekIndex: 1 };
   await db.write();
 }
 
-
 // ────── Helpers ──────
-function getWeekKey(date = new Date()) {
-  const year = date.getFullYear();
-  const week = Math.ceil((((date - new Date(year, 0, 1)) / 86400000) +
-                           new Date(year, 0, 1).getDay() + 1) / 7);
-  return `${year}-W${week}`;
+function getCustomWeekKey() {
+  return `W${db.data.weekIndex}`;
 }
 
 // ──────────────────────────────────────────────────────────────
-// 1)  Count messages as they come in
+// 1) Count messages as they come in
 // ──────────────────────────────────────────────────────────────
 client.on('messageCreate', async msg => {
   if (msg.author.bot) return;
   if (msg.channel.id !== config.trackedChannelId) return;
 
   const uid     = msg.author.id;
-  const weekKey = getWeekKey();
+  const weekKey = getCustomWeekKey();
 
   db.data.allTime[uid]  = (db.data.allTime[uid]  || 0) + 1;
   db.data.weekly[uid]   = (db.data.weekly[uid]   || 0) + 1;
@@ -62,19 +56,22 @@ client.on('messageCreate', async msg => {
 });
 
 // ──────────────────────────────────────────────────────────────
-// 2)  Slash-command handler
+// 2) Slash-command handler
 // ──────────────────────────────────────────────────────────────
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
   await db.read();
-  const weekKey = getWeekKey();
+  const currentWeekKey = getCustomWeekKey();
 
   switch (interaction.commandName) {
     case 'leaderboard': {
-      const type = interaction.options.getSubcommand(); // week or all
-      const data = type === 'all' ? db.data.allTime
-                                  : db.data.history[weekKey] ?? {};
+      const type = interaction.options.getSubcommand();
+      const weekParam = interaction.options.getString('number');
+      const weekKey = type === 'all' ? null : (weekParam || currentWeekKey);
+      const data = type === 'all'
+        ? db.data.allTime
+        : db.data.history[weekKey] ?? {};
 
       const sorted = Object.entries(data)
                            .sort(([, a], [, b]) => b - a)
@@ -116,12 +113,10 @@ client.on('interactionCreate', async interaction => {
       if (!config.adminIds.includes(interaction.user.id))
         return interaction.reply({ content: '❌ No permission.', ephemeral: true });
 
+      const currentKey = getCustomWeekKey();
+      db.data.history[currentKey] = { ...db.data.weekly };
       db.data.weekly = {};
-      await db.write();
-      return interaction.reply('✅ Weekly stats reset.');
-    }
-  }
-});
+      db.data.weekIndex += 1;
 
-client.once('ready', () => console.log(`✅ Logged in as ${client.user.tag}`));
-client.login(process.env.BOT_TOKEN);
+      await db.write();
+      return inter
