@@ -57,5 +57,5 @@ try {
   );
   console.log('✅ Slash commands deployed successfully.');
 } catch (err) {
-  console.error('❌ Error de
-
+  console.error('❌ Error deploying commands:', err);
+}
