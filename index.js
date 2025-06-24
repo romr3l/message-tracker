@@ -90,7 +90,7 @@ client.on('interactionCreate', async interaction => {
             ? 'Messages Leaderboard (All-Time)'
             : `Messages Leaderboard (Weekly – ${weekKey})`,
           description: `The delay between messages being counted is **0** seconds.\n\n${lines.join('\n') || '*No messages yet.*'}`,
-          color: 0x2F3136
+          color: 0x5865F2
         }]
       });
     }
@@ -102,7 +102,7 @@ client.on('interactionCreate', async interaction => {
 
       return interaction.reply({
         embeds: [{
-          title: `📊 Stats for ${target.username}`,
+          title: `Messages for ${target.username}`,
           fields: [
             { name: 'Weekly', value: String(week), inline: true },
             { name: 'All-Time', value: String(all), inline: true }
