@@ -83,7 +83,7 @@ client.on('interactionCreate', async interaction => {
                  ? '🏆 All-Time Leaderboard'
                  : `📅 Weekly Leaderboard (${weekKey})`,
           description: lines.join('\n') || 'No messages yet.',
-          color: 0x00BFFF
+          color: 0x5865F2
         }]
       });
     }
@@ -118,4 +118,3 @@ client.on('interactionCreate', async interaction => {
 
 client.once('ready', () => console.log(`✅ Logged in as ${client.user.tag}`));
 client.login(process.env.BOT_TOKEN);
-
