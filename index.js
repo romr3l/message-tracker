@@ -61,32 +61,28 @@ client.on('interactionCreate', async interaction => {
 
   switch (interaction.commandName) {
     case 'leaderboard': {
-      const type = interaction.options.getSubcommand();   // week or all
-      const data = type === 'all' ? db.data.allTime
-                                  : db.data.history[weekKey] ?? {};
-      const sorted = Object.entries(data)
-                           .sort(([,a],[,b]) => b - a)
-                           .slice(0, 10);
+  const type = interaction.options.getSubcommand();   // week or all
+  const data = type === 'all' ? db.data.allTime
+                              : db.data.history[weekKey] ?? {};
+  const sorted = Object.entries(data)
+                       .sort(([,a],[,b]) => b - a)
+                       .slice(0, 10);
 
-      const lines  = await Promise.all(sorted.map(
-        async ([id, count], i) => {
-          try {
-            const u = await client.users.fetch(id);
-            return `**${i+1}.** ${u.username} — ${count}`;
-          } catch { return `**${i+1}.** Unknown (${id}) — ${count}`; }
-        })
-      );
+  const lines = sorted.map(
+    ([id, count], i) => `${i + 1}. <@${id}> • ${count} messages sent.`
+  );
 
-      return interaction.reply({
-        embeds: [{
-          title: type === 'all'
-                 ? '🏆 All-Time Leaderboard'
-                 : `📅 Weekly Leaderboard (${weekKey})`,
-          description: lines.join('\n') || 'No messages yet.',
-          color: 0x5865F2
-        }]
-      });
-    }
+  return interaction.reply({
+    embeds: [{
+      title: type === 'all'
+             ? 'Messages Leaderboard (All-Time)'
+             : `Messages Leaderboard (Weekly - ${weekKey})`,
+      description: `The delay between messages being counted is **0** seconds.\n\n${lines.join('\n')}`,
+      color: 0x2F3136
+    }]
+  });
+}
+
 
     case 'stats': {
       const target = interaction.options.getUser('user') || interaction.user;
