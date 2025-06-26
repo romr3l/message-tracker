@@ -21,14 +21,23 @@ const client = new Client({
 const file     = path.join(__dirname, 'db.json');
 const adapter  = new JSONFile(file);
 const db       = new Low(adapter, {
-  defaultData: { allTime: {}, weekly: {}, history: {} }
+  defaultData: {
+    allTime: {},
+    weekly: {},
+    history: {},
+    currentWeek: getWeekKey()  // 🆕 initialize current week on first run
+  }
 });
 
 await db.read();
-if (!db.data.allTime) {
-  db.data = { allTime: {}, weekly: {}, history: {} };
-  await db.write();
-}
+
+// ✅ Safe fallback: Only set missing keys, avoid overwriting valid data
+db.data.allTime     ||= {};
+db.data.weekly      ||= {};
+db.data.history     ||= {};
+db.data.currentWeek ||= getWeekKey();
+
+await db.write();
 
 // ────── Helpers ──────
 function getWeekKey(date = new Date()) {
@@ -39,20 +48,33 @@ function getWeekKey(date = new Date()) {
 }
 
 // ──────────────────────────────────────────────────────────────
-// 1) Count messages
+// 1) Count messages (auto-rollover)
 // ──────────────────────────────────────────────────────────────
 client.on('messageCreate', async msg => {
   if (msg.author.bot) return;
   if (msg.channel.id !== config.trackedChannelId) return;
 
-  const uid     = msg.author.id;
-  const weekKey = getWeekKey();
+  const thisWeek = getWeekKey();          // e.g. 2025-W27
+
+  /* 📅 1. If the calendar week has changed, archive + reset */
+  if (thisWeek !== db.data.currentWeek) {
+    // Snapshot the finished week
+    db.data.history[db.data.currentWeek] = { ...db.data.weekly };
+
+    // Clear weekly counters and advance pointer
+    db.data.weekly = {};
+    db.data.currentWeek = thisWeek;
+  }
+
+  /* 📝 2. Normal counting logic */
+  const uid = msg.author.id;
 
   db.data.allTime[uid]  = (db.data.allTime[uid]  || 0) + 1;
   db.data.weekly[uid]   = (db.data.weekly[uid]   || 0) + 1;
-  db.data.history[weekKey] ??= {};
-  db.data.history[weekKey][uid] =
-        (db.data.history[weekKey][uid] || 0) + 1;
+
+  db.data.history[thisWeek] ??= {};
+  db.data.history[thisWeek][uid] =
+        (db.data.history[thisWeek][uid] || 0) + 1;
 
   await db.write();
 });
