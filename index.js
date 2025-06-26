@@ -40,11 +40,12 @@ db.data.currentWeek ||= getWeekKey();
 await db.write();
 
 // ────── Helpers ──────
-// 🔧 TEMPORARY test version
 function getWeekKey(date = new Date()) {
-  return "2025-WTEST1"; // first test week label
+  const year = date.getFullYear();
+  const week = Math.ceil((((date - new Date(year, 0, 1)) / 86400000) +
+                           new Date(year, 0, 1).getDay() + 1) / 7);
+  return `${year}-W${week}`;
 }
-
 
 
 // ──────────────────────────────────────────────────────────────
