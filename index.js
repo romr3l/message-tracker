@@ -40,13 +40,11 @@ db.data.currentWeek ||= getWeekKey();
 await db.write();
 
 // ────── Helpers ──────
-let testWeekToggle = false;
-
-function getWeekKey() {
-  // Alternate between two test weeks each time you restart
-  testWeekToggle = !testWeekToggle;
-  return testWeekToggle ? 'TEST-W1' : 'TEST-W2';
+// 🔧 TEMPORARY test version
+function getWeekKey(date = new Date()) {
+  return "2025-WTEST1"; // first test week label
 }
+
 
 
 // ──────────────────────────────────────────────────────────────
