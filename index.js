@@ -41,10 +41,15 @@ await db.write();
 
 // ────── Helpers ──────
 function getWeekKey(date = new Date()) {
-  const year = date.getFullYear();
-  const week = Math.ceil((((date - new Date(year, 0, 1)) / 86400000) +
-                           new Date(year, 0, 1).getDay() + 1) / 7);
-  return `${year}-W${week}`;
+  // Adjust for EST/EDT by subtracting 4 hours (UTC-4)
+  const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+  const est = new Date(utc - (4 * 60 * 60000));
+
+  const startOfYear = new Date(est.getFullYear(), 0, 1);
+  const dayOfYear = Math.floor((est - startOfYear) / 86400000);
+  const week = Math.floor(dayOfYear / 7) + 1;
+
+  return `${est.getFullYear()}-W${week}`;
 }
 
 
