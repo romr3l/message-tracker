@@ -41,25 +41,28 @@ await db.write();
 
 // ────── Helpers ──────
 function getWeekKey(date = new Date()) {
-  // Convert UTC to EST (UTC-4)
+  // Convert to EST
   const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
   const est = new Date(utc - (4 * 60 * 60000));
 
-  // Custom: Week starts Monday 12:00 AM EST
-  const day = est.getDay(); // Sunday = 0, Monday = 1, ..., Saturday = 6
+  const year = est.getFullYear();
+
+  // Set to Monday of the current week
   const estMidnight = new Date(est);
   estMidnight.setHours(0, 0, 0, 0);
+  const day = estMidnight.getDay(); // Sunday = 0
+  const monday = new Date(estMidnight.getTime() - ((day + 6) % 7) * 86400000);
 
-  // Calculate start of week (Monday 12 AM)
-  const diffToMonday = ((day + 6) % 7) * 86400000;
-  const monday = new Date(estMidnight.getTime() - diffToMonday);
+  // Set Jan 4 (guaranteed to be in week 1)
+  const jan4 = new Date(year, 0, 4);
+  const jan4Day = jan4.getDay();
+  const jan4Monday = new Date(jan4.getTime() - ((jan4Day + 6) % 7) * 86400000);
 
-  const year = monday.getFullYear();
-  const jan1 = new Date(year, 0, 1);
-  const weekNum = Math.floor((monday - jan1) / 604800000) + 1;
+  const weekNum = Math.round((monday - jan4Monday) / 604800000) + 1;
 
   return `${year}-W${weekNum}`;
 }
+
 
 
 // ──────────────────────────────────────────────────────────────
