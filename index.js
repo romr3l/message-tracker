@@ -41,28 +41,28 @@ await db.write();
 
 // ────── Helpers ──────
 function getWeekKey(date = new Date()) {
-  // Convert to EST
+  // Convert to EST (UTC-4)
   const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
   const est = new Date(utc - (4 * 60 * 60000));
 
+  // If it's before 12 PM on Sunday, treat it as part of the previous week
+  const day = est.getDay(); // Sunday = 0
+  const hour = est.getHours();
+
+  // If it's Sunday and before noon, subtract one day so it counts as last week
+  if (day === 0 && hour < 12) {
+    est.setDate(est.getDate() - 1);
+  }
+
+  // Set Jan 1 of the year and calculate week number
   const year = est.getFullYear();
+  const jan1 = new Date(year, 0, 1);
+  const diff = est - jan1;
+  const dayOfYear = Math.floor(diff / 86400000);
 
-  // Set to Monday of the current week
-  const estMidnight = new Date(est);
-  estMidnight.setHours(0, 0, 0, 0);
-  const day = estMidnight.getDay(); // Sunday = 0
-  const monday = new Date(estMidnight.getTime() - ((day + 6) % 7) * 86400000);
-
-  // Set Jan 4 (guaranteed to be in week 1)
-  const jan4 = new Date(year, 0, 4);
-  const jan4Day = jan4.getDay();
-  const jan4Monday = new Date(jan4.getTime() - ((jan4Day + 6) % 7) * 86400000);
-
-  const weekNum = Math.round((monday - jan4Monday) / 604800000) + 1;
-
-  return `${year}-W${weekNum}`;
+  const week = Math.floor(dayOfYear / 7) + 1;
+  return `${year}-W${week}`;
 }
-
 
 
 // ──────────────────────────────────────────────────────────────
@@ -168,8 +168,35 @@ client.on('interactionCreate', async interaction => {
       await db.write();
       return interaction.reply('✅ Weekly stats reset.');
     }
+
+    case 'addmessages': {
+      if (!config.adminIds.includes(interaction.user.id))
+        return interaction.reply({ content: '❌ No permission.', ephemeral: true });
+
+      const target = interaction.options.getUser('user');
+      const amount = interaction.options.getInteger('amount');
+
+      if (!target || !amount || amount <= 0)
+        return interaction.reply({ content: '❌ Invalid user or amount.', ephemeral: true });
+
+      const uid = target.id;
+      const thisWeek = getWeekKey();
+
+      db.data.allTime[uid]  = (db.data.allTime[uid]  || 0) + amount;
+      db.data.weekly[uid]   = (db.data.weekly[uid]   || 0) + amount;
+
+      db.data.history[thisWeek] ??= {};
+      db.data.history[thisWeek][uid] =
+        (db.data.history[thisWeek][uid] || 0) + amount;
+
+      await db.write();
+
+      return interaction.reply(`✅ Added **${amount}** messages to <@${uid}>.`);
+    }
   }
 });
+
+
 
 client.once('ready', () => console.log(`✅ Logged in as ${client.user.tag}`));
 client.login(process.env.BOT_TOKEN);
