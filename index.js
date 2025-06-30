@@ -45,24 +45,24 @@ function getWeekKey(date = new Date()) {
   const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
   const est = new Date(utc - (4 * 60 * 60000));
 
-  // If it's before 12 PM on Sunday, treat it as part of the previous week
-  const day = est.getDay(); // Sunday = 0
-  const hour = est.getHours();
+  // Get the first Sunday of the year
+  const jan1 = new Date(est.getFullYear(), 0, 1);
+  const jan1Day = jan1.getDay(); // Sunday = 0
 
-  // If it's Sunday and before noon, subtract one day so it counts as last week
-  if (day === 0 && hour < 12) {
-    est.setDate(est.getDate() - 1);
-  }
+  const firstSunday = new Date(jan1);
+  firstSunday.setDate(jan1.getDate() + (7 - jan1Day) % 7);
 
-  // Set Jan 1 of the year and calculate week number
-  const year = est.getFullYear();
-  const jan1 = new Date(year, 0, 1);
-  const diff = est - jan1;
-  const dayOfYear = Math.floor(diff / 86400000);
+  // If current date is before the first Sunday, it's Week 1
+  if (est < firstSunday) return `${est.getFullYear()}-W1`;
 
-  const week = Math.floor(dayOfYear / 7) + 1;
-  return `${year}-W${week}`;
+  // Calculate difference in days from first Sunday
+  const diff = est - firstSunday;
+  const dayDiff = Math.floor(diff / 86400000);
+  const week = Math.floor(dayDiff / 7) + 2; // +2 because week starts after first Sunday
+
+  return `${est.getFullYear()}-W${week}`;
 }
+
 
 
 // ──────────────────────────────────────────────────────────────
